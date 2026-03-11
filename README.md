@@ -1,9 +1,8 @@
 # Hades
 
-Hades is the core signal-handling library for the Pantheon ecosystem. Named after the Greek god of the underworld, it serves as the silent observer that manages the "end" of a process's execution thread when a termination signal is received.
+Hades is the signal-handling library for my ecosystem. Named after the Greek god of the underworld, it serves as the silent observer that manages the "end" of a process's execution thread when a termination signal is received.
 
-For the ecosystem I still need a replacement for `signal_hook`.
-As always, no dependencies are allowed, only rusts standard library and `libc`.
+As always, no dependencies are allowed, educational in nature, only rusts standard library and `libc`.
 
 
 ## Supported platforms
