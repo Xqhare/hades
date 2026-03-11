@@ -2,6 +2,7 @@ mod error;
 mod sys;
 pub mod term_signals;
 
+use crate::error::HadesResult;
 use crate::term_signals::TermSignal;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -10,17 +11,9 @@ pub mod flag {
     use super::*;
 
     /// Registers a flag to be set to `true` when the given signal is received.
-    ///
-    /// This function takes an `Arc<AtomicBool>`. It "leaks" one reference of this Arc
-    /// to a global static so the signal handler can safely access it.
-    pub fn register(sig: TermSignal, flag: Arc<AtomicBool>) -> crate::error::HadesResult<()> {
-        // 1. Convert Arc to a raw pointer. This increments the reference count 
-
-        // internally (via into_raw) so the memory stays alive even if the user drops their Arcs.
+    pub fn register(sig: TermSignal, flag: Arc<AtomicBool>) -> HadesResult<()> {
         let new_ptr = Arc::into_raw(flag) as *mut AtomicBool;
 
-        // 2. We swap the pointer in our global state. If there was a previous flag
-        // registered for this signal, we take it back and let it drop naturally.
         let old_ptr = match sig {
             TermSignal::SIGINT => sys::SIGINT_PTR.swap(new_ptr, Ordering::Release),
             TermSignal::SIGTERM => sys::SIGTERM_PTR.swap(new_ptr, Ordering::Release),
@@ -29,13 +22,61 @@ pub mod flag {
 
         if !old_ptr.is_null() {
             unsafe {
-                // This recreates the Arc from the old pointer and immediately drops it,
-                // correctly decrementing the reference count.
                 let _ = Arc::from_raw(old_ptr);
             }
         }
 
-        // 3. Inform the OS to use our handler.
         sys::register_flag(sig, new_ptr)
+    }
+}
+
+pub struct Signals {
+    handle: i32,
+}
+
+impl Signals {
+    /// Creates a new `Signals` instance and registers the given signals.
+    pub fn new(signals: &[TermSignal]) -> HadesResult<Self> {
+        let handle = sys::setup_signals_backend()?;
+        sys::register_signals(signals)?;
+        Ok(Self { handle })
+    }
+
+    /// Returns an iterator that blocks indefinitely, yielding signals as they occur.
+    pub fn forever(&mut self) -> SignalsForever<'_> {
+        SignalsForever { signals: self }
+    }
+}
+
+pub struct SignalsForever<'a> {
+    signals: &'a mut Signals,
+}
+
+impl Iterator for SignalsForever<'_> {
+    type Item = TermSignal;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match sys::wait_for_signal(self.signals.handle) {
+            Ok(sig_byte) => {
+                // Map the raw byte back to our TermSignal enum.
+                // Note: On Unix, these are the libc signal constants.
+                match sig_byte as i32 {
+                    libc::SIGINT => Some(TermSignal::SIGINT),
+                    libc::SIGTERM => Some(TermSignal::SIGTERM),
+                    libc::SIGQUIT => Some(TermSignal::SIGQUIT),
+                    _ => None,
+                }
+            }
+            Err(_) => None,
+        }
+    }
+}
+
+#[cfg(unix)]
+impl Drop for Signals {
+    fn drop(&mut self) {
+        unsafe {
+            libc::close(self.handle);
+        }
     }
 }
