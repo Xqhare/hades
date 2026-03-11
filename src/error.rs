@@ -12,6 +12,8 @@ pub enum HadesError {
     PipeClosedUnexpectedly,
     /// The requested feature is not yet implemented on this platform.
     NotImplemented(&'static str),
+    /// A generic error message - used for development and platform-specific prototyping.
+    Generic(String),
 }
 
 impl std::fmt::Display for HadesError {
@@ -32,6 +34,7 @@ impl std::fmt::Display for HadesError {
             HadesError::NotImplemented(feature) => {
                 write!(f, "Feature '{}' is not implemented on this platform", feature)
             }
+            HadesError::Generic(msg) => write!(f, "{}", msg),
         }
     }
 }
