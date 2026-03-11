@@ -28,3 +28,21 @@ pub fn register_flag(sig: TermSignal, flag: *mut AtomicBool) -> HadesResult<()> 
 
     os::register_signal(sig)
 }
+
+/// Initializes the signals backend (e.g. self-pipe on Unix).
+pub fn setup_signals_backend() -> HadesResult<i32> {
+    os::setup_pipe()
+}
+
+/// Blocks until a signal is received via the backend.
+pub fn wait_for_signal(backend_handle: i32) -> HadesResult<u8> {
+    os::read_signal(backend_handle)
+}
+
+/// Registers multiple signals at once for the backend.
+pub fn register_signals(signals: &[TermSignal]) -> HadesResult<()> {
+    for &sig in signals {
+        os::register_signal(sig)?;
+    }
+    Ok(())
+}
