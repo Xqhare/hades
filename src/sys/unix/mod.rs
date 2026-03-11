@@ -1,4 +1,4 @@
-use super::{SIGINT_PTR, SIGQUIT_PTR, SIGTERM_PTR};
+use super::{SIGINT_PTR, SIGQUIT_PTR, SIGTERM_PTR, SIGUSR1_PTR, SIGUSR2_PTR};
 use crate::{
     error::{HadesError, HadesResult},
     term_signals::TermSignal,
@@ -12,6 +12,8 @@ pub fn register_signal(sig: TermSignal) -> HadesResult<()> {
         TermSignal::SIGINT => libc::SIGINT,
         TermSignal::SIGTERM => libc::SIGTERM,
         TermSignal::SIGQUIT => libc::SIGQUIT,
+        TermSignal::SIGUSR1 => libc::SIGUSR1,
+        TermSignal::SIGUSR2 => libc::SIGUSR2,
     };
 
     unsafe {
@@ -58,6 +60,8 @@ extern "C" fn hades_handler(sig: libc::c_int) {
         libc::SIGINT => SIGINT_PTR.load(Ordering::Relaxed),
         libc::SIGTERM => SIGTERM_PTR.load(Ordering::Relaxed),
         libc::SIGQUIT => SIGQUIT_PTR.load(Ordering::Relaxed),
+        libc::SIGUSR1 => SIGUSR1_PTR.load(Ordering::Relaxed),
+        libc::SIGUSR2 => SIGUSR2_PTR.load(Ordering::Relaxed),
         _ => std::ptr::null_mut(),
     };
 
