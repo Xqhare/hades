@@ -29,7 +29,7 @@ pub fn register_signal(sig: TermSignal) -> HadesResult<()> {
     Ok(())
 }
 
-pub fn setup_pipe() -> HadesResult<i32> {
+pub fn setup_pipe() -> HadesResult<isize> {
     let mut fds = [0i32; 2];
     unsafe {
         if libc::pipe(fds.as_mut_ptr()) != 0 {
@@ -48,7 +48,7 @@ pub fn setup_pipe() -> HadesResult<i32> {
         GLOBAL_PIPE_WRITER.store(fds[1], Ordering::Release);
     }
 
-    Ok(fds[0])
+    Ok(fds[0] as isize)
 }
 
 extern "C" fn hades_handler(sig: libc::c_int) {
@@ -78,7 +78,8 @@ extern "C" fn hades_handler(sig: libc::c_int) {
     unsafe { *libc::__errno_location() = original_errno };
 }
 
-pub fn read_signal(fd: i32) -> HadesResult<u8> {
+pub fn read_signal(fd_isize: isize) -> HadesResult<u8> {
+    let fd = fd_isize as i32;
     let mut byte = 0u8;
     loop {
         let n = unsafe {
