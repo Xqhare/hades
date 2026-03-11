@@ -31,7 +31,7 @@ pub mod flag {
 }
 
 pub struct Signals {
-    handle: i32,
+    handle: isize,
 }
 
 impl Signals {
@@ -60,11 +60,24 @@ impl Iterator for SignalsForever<'_> {
             Ok(sig_byte) => {
                 // Map the raw byte back to our TermSignal enum.
                 // Note: On Unix, these are the libc signal constants.
-                match sig_byte as i32 {
-                    libc::SIGINT => Some(TermSignal::SIGINT),
-                    libc::SIGTERM => Some(TermSignal::SIGTERM),
-                    libc::SIGQUIT => Some(TermSignal::SIGQUIT),
-                    _ => None,
+                #[cfg(unix)]
+                {
+                    match sig_byte as i32 {
+                        libc::SIGINT => Some(TermSignal::SIGINT),
+                        libc::SIGTERM => Some(TermSignal::SIGTERM),
+                        libc::SIGQUIT => Some(TermSignal::SIGQUIT),
+                        _ => None,
+                    }
+                }
+                #[cfg(windows)]
+                {
+                    // On Windows, we'll map our internal signal codes (0, 1, 2).
+                    match sig_byte {
+                        0 => Some(TermSignal::SIGINT),
+                        1 => Some(TermSignal::SIGQUIT),
+                        2 => Some(TermSignal::SIGTERM),
+                        _ => None,
+                    }
                 }
             }
             Err(_) => None,
@@ -76,7 +89,14 @@ impl Iterator for SignalsForever<'_> {
 impl Drop for Signals {
     fn drop(&mut self) {
         unsafe {
-            libc::close(self.handle);
+            libc::close(self.handle as i32);
         }
+    }
+}
+
+#[cfg(windows)]
+impl Drop for Signals {
+    fn drop(&mut self) {
+        sys::os::SignalsHandle::close(self.handle);
     }
 }
