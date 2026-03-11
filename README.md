@@ -96,21 +96,28 @@ The sigaction struct allows precise control:
 
 #### Windows specifics
 
-The equivalent of sigaction on Windows is SetConsoleCtrlHandler. This API allows an application to register a callback function that the system invokes when specific console events occur (like CTRL_C_EVENT).
-Key Differences from Unix:
+The equivalent of sigaction on Windows is `SetConsoleCtrlHandler`. This API allows an application to register a callback function that the system invokes when specific console events occur.
 
-1. Thread Injection: When a generic signal like Ctrl+C occurs, the Windows kernel creates a new thread in the process to run the handler routine. This is a massive architectural divergence. On Unix, the handler interrupts an existing thread; on Windows, it runs concurrently.
-2. Manual FFI Necessity: The libc crate for Rust generally exposes POSIX definitions. It does not expose the Windows kernel32 APIs required for advanced event handling. To stick to the "libc only" (no extra crates) philosophy, I will include a sys module that manually defines the necessary extern "system" functions.
+**Key Differences from Unix:**
 
-Instead of relying on a polling loop with an AtomicBool (which wastes CPU cycles or reacts slowly), I will implement a blocking mechanism analogous to the Unix Self-Pipe by manually binding to Windows Synchronization Objects.
+1. **Thread Injection:** When a signal occurs, the Windows kernel creates a **new thread** in the process to run the handler routine. This is a massive architectural divergence. On Unix, the handler interrupts an existing thread; on Windows, it runs concurrently.
+2. **Event Constants:** Windows uses specific `DWORD` values to identify events:
+    - `CTRL_C_EVENT = 0` (Equivalent to `SIGINT`)
+    - `CTRL_BREAK_EVENT = 1` (Equivalent to `SIGQUIT`)
+    - `CTRL_CLOSE_EVENT = 2` (Equivalent to `SIGTERM`)
+3. **Manual FFI Necessity:** To stick to the "no external dependencies" philosophy, I will manually define the necessary `extern "system"` functions from `kernel32.dll`.
 
-We will use a Windows Event Object (CreateEventW). This is a kernel object that can be "signaled" or "unsignaled". **Recommendation:** Store the event `HANDLE` in a `std::sync::atomic::AtomicPtr` for safe cross-thread access during initialization.
+**The Event-Signaling Strategy:**
 
-- Initialization: Create a manual-reset event object using CreateEventW.
-- The Handler: When SetConsoleCtrlHandler triggers, it calls SetEvent on the global event handle.
-- The Waiter: The main application thread blocks on WaitForSingleObject. When the event is signaled, the wait completes immediately.
+Instead of a pipe, we will use a **Windows Event Object** (`CreateEventW`). This is a kernel object that can be "signaled" or "unsignaled". 
 
-Since we are avoiding winapi or windows-sys, we must define these signatures ourselves. This is standard practice for zero-dependency libraries.
+- **Initialization:** Create a **manual-reset** event object using `CreateEventW`.
+- **The Handler:** When `SetConsoleCtrlHandler` triggers, it performs two actions:
+    1. Stores the received `dwCtrlType` in a global **Atomic Ring Buffer** (to handle rapid-fire signals and preserve their type).
+    2. Calls `SetEvent` on the global event handle to wake the waiter.
+- **The Waiter:** The main application thread blocks on `WaitForSingleObject`. When it wakes:
+    1. It drains the Atomic Ring Buffer to process all pending signals.
+    2. It calls `ResetEvent` to prepare for the next signal.
 
 ```rust
 // Architecture: x86_64-pc-windows-msvc
@@ -129,8 +136,11 @@ extern "system" {
     ) -> HANDLE;
 
     fn SetEvent(hEvent: HANDLE) -> BOOL;
+    fn ResetEvent(hEvent: HANDLE) -> BOOL;
     
     fn WaitForSingleObject(hHandle: HANDLE, dwMilliseconds: DWORD) -> DWORD;
+
+    fn CloseHandle(hObject: HANDLE) -> BOOL;
 
     fn SetConsoleCtrlHandler(
         HandlerRoutine: Option<unsafe extern "system" fn(DWORD) -> BOOL>,
