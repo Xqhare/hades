@@ -18,6 +18,8 @@ pub mod flag {
             TermSignal::SIGINT => sys::SIGINT_PTR.swap(new_ptr, Ordering::Release),
             TermSignal::SIGTERM => sys::SIGTERM_PTR.swap(new_ptr, Ordering::Release),
             TermSignal::SIGQUIT => sys::SIGQUIT_PTR.swap(new_ptr, Ordering::Release),
+            TermSignal::SIGUSR1 => sys::SIGUSR1_PTR.swap(new_ptr, Ordering::Release),
+            TermSignal::SIGUSR2 => sys::SIGUSR2_PTR.swap(new_ptr, Ordering::Release),
         };
 
         if !old_ptr.is_null() {
@@ -59,13 +61,14 @@ impl Iterator for SignalsForever<'_> {
         match sys::wait_for_signal(self.signals.handle) {
             Ok(sig_byte) => {
                 // Map the raw byte back to our TermSignal enum.
-                // Note: On Unix, these are the libc signal constants.
                 #[cfg(unix)]
                 {
                     match sig_byte as i32 {
                         libc::SIGINT => Some(TermSignal::SIGINT),
                         libc::SIGTERM => Some(TermSignal::SIGTERM),
                         libc::SIGQUIT => Some(TermSignal::SIGQUIT),
+                        libc::SIGUSR1 => Some(TermSignal::SIGUSR1),
+                        libc::SIGUSR2 => Some(TermSignal::SIGUSR2),
                         _ => None,
                     }
                 }
