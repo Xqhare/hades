@@ -15,12 +15,16 @@ use windows as os;
 pub(crate) static SIGINT_PTR: AtomicPtr<AtomicBool> = AtomicPtr::new(std::ptr::null_mut());
 pub(crate) static SIGTERM_PTR: AtomicPtr<AtomicBool> = AtomicPtr::new(std::ptr::null_mut());
 pub(crate) static SIGQUIT_PTR: AtomicPtr<AtomicBool> = AtomicPtr::new(std::ptr::null_mut());
+pub(crate) static SIGUSR1_PTR: AtomicPtr<AtomicBool> = AtomicPtr::new(std::ptr::null_mut());
+pub(crate) static SIGUSR2_PTR: AtomicPtr<AtomicBool> = AtomicPtr::new(std::ptr::null_mut());
 
 pub fn register_flag(sig: TermSignal, flag: *mut AtomicBool) -> HadesResult<()> {
     match sig {
         TermSignal::SIGINT => SIGINT_PTR.store(flag, Ordering::Release),
         TermSignal::SIGTERM => SIGTERM_PTR.store(flag, Ordering::Release),
         TermSignal::SIGQUIT => SIGQUIT_PTR.store(flag, Ordering::Release),
+        TermSignal::SIGUSR1 => SIGUSR1_PTR.store(flag, Ordering::Release),
+        TermSignal::SIGUSR2 => SIGUSR2_PTR.store(flag, Ordering::Release),
     }
 
     os::register_signal(sig)
