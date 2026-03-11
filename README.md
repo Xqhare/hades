@@ -38,10 +38,10 @@ if let Some(_signal) = signals.forever().next() {}
 
 ## Prior research
 
-When a signal is generated—whether by a keystroke (Ctrl+C), a kernel exception (segmentation fault), or another process (the kill command)—the operating system interrupts the target process.
+When a signal is generated, whether by a keystroke (Ctrl+C), a kernel exception (segmentation fault), or another process (the kill command), the operating system interrupts the target process.
 The kernel suspends the process's execution context, often between two individual machine instructions, and forces the instruction pointer to jump to a registered signal handler function. This handler runs on the stack of the interrupted thread (or a dedicated signal stack if configured). This creates a unique form of concurrency: the handler and the main program share the same memory space and thread identity, yet they execute asynchronously relative to each other.
 Rust's standard library (std) is designed for general-purpose programming and relies heavily on synchronization primitives (mutexes, thread-local storage) and memory allocation. These are generally unsafe to use inside a signal handler. For instance, println! locks standard output. If the main program is interrupted while holding the stdout lock, and the signal handler attempts to call println!, the handler will wait forever for the lock held by the suspended main program—a classic deadlock.
-Therefore, we cannot use standard Rust features within the handler itself. It must rely on libc—the raw bindings to the system's C library—to perform minimal, safe operations. The libc crate provides the necessary type definitions (c_int, sigaction) and function prototypes (write, pipe, sigaction) required to interact with the kernel at this low level.
+Therefore, we cannot use standard Rust features within the handler itself. It must rely on libc, the raw bindings to the system's C library, to perform minimal, safe operations. The libc crate provides the necessary type definitions (c_int, sigaction) and function prototypes (write, pipe, sigaction) required to interact with the kernel at this low level.
 I must use the handler solely as a bridge to notify the main application thread, converting an asynchronous interrupt into a synchronous event.
 
 ### The Self-Pipe Trick
