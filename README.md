@@ -2,10 +2,10 @@
 
 Hades is the signal-handling library for my ecosystem. Named after the Greek god of the underworld, it serves as the silent observer that manages the "end" of a process's execution thread when a termination signal is received.
 
-- **Zero External Dependencies**: Uses only the Rust standard library and `libc`.
-- **Educational Architecture**: Implements low-level OS primitives (Self-Pipe, Event Objects) from scratch.
-- **Cross-Platform**: Full support for Linux, macOS, and Windows.
-- **Deadly Simple API**: Designed as a minimal replacement for `signal_hook`.
+- Zero External Dependencies: Uses only the Rust standard library and `libc`.
+- Educational Architecture: Implements low-level OS primitives (Self-Pipe, Event Objects) from scratch.
+- Cross-Platform: Full support for Linux, macOS, and Windows.
+- Deadly Simple API: Designed as a minimal replacement for `signal_hook`.
 
 ## Usage
 
@@ -46,7 +46,7 @@ for signal in signals.forever() {
 }
 ```
 
-## How it Works (Evolutionary Documentation)
+## How it Works
 
 Handling signals in Rust is notoriously difficult because signal handlers are **asynchronously** executed on the stack of an interrupted thread. Most Rust primitives (like `Mutex` or `println!`) are not **async-signal-safe** and can cause deadlocks if a signal interrupts a thread while it holds a lock.
 
@@ -64,6 +64,10 @@ Windows does not have Unix signals; it uses `SetConsoleCtrlHandler` which spawns
 2. It then signals a Windows **Event Object** (`CreateEventW`).
 3. The **Main Thread** blocks on `WaitForSingleObject`. Once signaled, it drains the ring buffer to process all queued signals.
 
+### Implementation Details
+
+Refer to [startup-notes.md](./startup-notes.md) for the original research, FFI signatures, and technical constraints used during the development of this library.
+
 ## Supported Signals
 
 | Signal | Windows Equivalent | Default Action | Description |
@@ -74,6 +78,3 @@ Windows does not have Unix signals; it uses `SetConsoleCtrlHandler` which spawns
 | `SIGUSR1` | N/A | Ignore | User-defined signal 1 (Unix only) |
 | `SIGUSR2` | N/A | Ignore | User-defined signal 2 (Unix only) |
 
-## Implementation Details
-
-Refer to [startup-notes.md](./startup-notes.md) for the original research, FFI signatures, and technical constraints used during the development of this library.
