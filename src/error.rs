@@ -20,21 +20,21 @@ impl std::fmt::Display for HadesError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             HadesError::RegistrationFailed(sig, err) => {
-                write!(f, "Failed to register handler for signal {}: errno {}", sig, err)
+                write!(f, "Failed to register handler for signal {sig}: errno {err}")
             }
             HadesError::BackendCreationFailed(op, err) => {
-                write!(f, "Failed to initialize backend ({}): errno {}", op, err)
+                write!(f, "Failed to initialize backend ({op}): errno {err}")
             }
             HadesError::ReadFailed(op, err) => {
-                write!(f, "Failed to read signal ({}): errno {}", op, err)
+                write!(f, "Failed to read signal ({op}): errno {err}")
             }
             HadesError::PipeClosedUnexpectedly => {
                 write!(f, "Internal signal pipe was closed unexpectedly")
             }
             HadesError::NotImplemented(feature) => {
-                write!(f, "Feature '{}' is not implemented on this platform", feature)
+                write!(f, "Feature '{feature}' is not implemented on this platform")
             }
-            HadesError::Generic(msg) => write!(f, "{}", msg),
+            HadesError::Generic(msg) => write!(f, "{msg}"),
         }
     }
 }

@@ -8,11 +8,11 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 pub mod flag {
-    use super::*;
+    use super::{TermSignal, Arc, AtomicBool, HadesResult, sys, Ordering};
 
     /// Registers a flag to be set to `true` when the given signal is received.
     pub fn register(sig: TermSignal, flag: Arc<AtomicBool>) -> HadesResult<()> {
-        let new_ptr = Arc::into_raw(flag) as *mut AtomicBool;
+        let new_ptr = Arc::into_raw(flag).cast_mut();
 
         let old_ptr = match sig {
             TermSignal::SIGINT => sys::SIGINT_PTR.swap(new_ptr, Ordering::Release),
@@ -63,7 +63,7 @@ impl Iterator for SignalsForever<'_> {
                 // Map the raw byte back to our TermSignal enum.
                 #[cfg(unix)]
                 {
-                    match sig_byte as i32 {
+                    match i32::from(sig_byte) {
                         libc::SIGINT => Some(TermSignal::SIGINT),
                         libc::SIGTERM => Some(TermSignal::SIGTERM),
                         libc::SIGQUIT => Some(TermSignal::SIGQUIT),

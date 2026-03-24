@@ -19,10 +19,10 @@ pub fn register_signal(sig: TermSignal) -> HadesResult<()> {
     unsafe {
         let mut action: libc::sigaction = std::mem::zeroed();
         action.sa_sigaction = hades_handler as *const () as usize;
-        libc::sigemptyset(&mut action.sa_mask);
+        libc::sigemptyset(&raw mut action.sa_mask);
         action.sa_flags = libc::SA_RESTART;
 
-        if libc::sigaction(libc_sig, &action, std::ptr::null_mut()) != 0 {
+        if libc::sigaction(libc_sig, &raw const action, std::ptr::null_mut()) != 0 {
             let err = *libc::__errno_location();
             return Err(HadesError::RegistrationFailed(libc_sig.to_string(), err));
         }
@@ -75,7 +75,7 @@ extern "C" fn hades_handler(sig: libc::c_int) {
     if pipe_writer != -1 {
         let sig_byte = sig as u8;
         unsafe {
-            libc::write(pipe_writer, &sig_byte as *const _ as *const libc::c_void, 1);
+            libc::write(pipe_writer, (&raw const sig_byte).cast::<libc::c_void>(), 1);
         }
     }
 
@@ -87,7 +87,7 @@ pub fn read_signal(fd_isize: isize) -> HadesResult<u8> {
     let mut byte = 0u8;
     loop {
         let n = unsafe {
-            libc::read(fd, &mut byte as *mut _ as *mut libc::c_void, 1)
+            libc::read(fd, (&raw mut byte).cast::<libc::c_void>(), 1)
         };
 
         if n == 1 {
@@ -103,7 +103,7 @@ pub fn read_signal(fd_isize: isize) -> HadesResult<u8> {
                     revents: 0,
                 };
                 unsafe {
-                    libc::poll(&mut fds, 1, -1);
+                    libc::poll(&raw mut fds, 1, -1);
                 }
                 continue;
             }
