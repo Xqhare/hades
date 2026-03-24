@@ -24,10 +24,22 @@ const WAIT_OBJECT_0: DWORD = 0;
 // This ensures we don't lose signals if multiple arrive before the main thread can read them.
 const RING_BUFFER_SIZE: usize = 16;
 static RING_BUFFER: [AtomicI32; RING_BUFFER_SIZE] = [
-    const { AtomicI32::new(-1) }, const { AtomicI32::new(-1) }, const { AtomicI32::new(-1) }, const { AtomicI32::new(-1) },
-    const { AtomicI32::new(-1) }, const { AtomicI32::new(-1) }, const { AtomicI32::new(-1) }, const { AtomicI32::new(-1) },
-    const { AtomicI32::new(-1) }, const { AtomicI32::new(-1) }, const { AtomicI32::new(-1) }, const { AtomicI32::new(-1) },
-    const { AtomicI32::new(-1) }, const { AtomicI32::new(-1) }, const { AtomicI32::new(-1) }, const { AtomicI32::new(-1) },
+    const { AtomicI32::new(-1) },
+    const { AtomicI32::new(-1) },
+    const { AtomicI32::new(-1) },
+    const { AtomicI32::new(-1) },
+    const { AtomicI32::new(-1) },
+    const { AtomicI32::new(-1) },
+    const { AtomicI32::new(-1) },
+    const { AtomicI32::new(-1) },
+    const { AtomicI32::new(-1) },
+    const { AtomicI32::new(-1) },
+    const { AtomicI32::new(-1) },
+    const { AtomicI32::new(-1) },
+    const { AtomicI32::new(-1) },
+    const { AtomicI32::new(-1) },
+    const { AtomicI32::new(-1) },
+    const { AtomicI32::new(-1) },
 ];
 static WRITE_CURSOR: AtomicI32 = AtomicI32::new(0);
 static READ_CURSOR: AtomicI32 = AtomicI32::new(0);
@@ -102,7 +114,10 @@ pub fn read_signal(handle_isize: isize) -> HadesResult<u8> {
         unsafe {
             let res = WaitForSingleObject(handle, INFINITE);
             if res != WAIT_OBJECT_0 {
-                return Err(HadesError::ReadFailed("WaitForSingleObject", GetLastError() as i32));
+                return Err(HadesError::ReadFailed(
+                    "WaitForSingleObject",
+                    GetLastError() as i32,
+                ));
             }
             // Once woken, reset the event so we can wait again next time.
             ResetEvent(handle);

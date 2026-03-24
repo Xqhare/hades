@@ -86,9 +86,7 @@ pub fn read_signal(fd_isize: isize) -> HadesResult<u8> {
     let fd = fd_isize as i32;
     let mut byte = 0u8;
     loop {
-        let n = unsafe {
-            libc::read(fd, (&raw mut byte).cast::<libc::c_void>(), 1)
-        };
+        let n = unsafe { libc::read(fd, (&raw mut byte).cast::<libc::c_void>(), 1) };
 
         if n == 1 {
             return Ok(byte);
@@ -109,7 +107,7 @@ pub fn read_signal(fd_isize: isize) -> HadesResult<u8> {
             }
             return Err(HadesError::ReadFailed("read(pipe)", err));
         }
-        
+
         return Err(HadesError::PipeClosedUnexpectedly);
     }
 }

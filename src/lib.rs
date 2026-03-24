@@ -8,7 +8,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 pub mod flag {
-    use super::{TermSignal, Arc, AtomicBool, HadesResult, sys, Ordering};
+    use super::{Arc, AtomicBool, HadesResult, Ordering, TermSignal, sys};
 
     /// Registers a flag to be set to `true` when the given signal is received.
     pub fn register(sig: TermSignal, flag: Arc<AtomicBool>) -> HadesResult<()> {

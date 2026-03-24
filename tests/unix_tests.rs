@@ -19,7 +19,7 @@ fn test_unix_signals_iterator() {
     // This should block and then return our signal.
     let mut iter = signals.forever();
     let received = iter.next();
-    
+
     assert_eq!(received, Some(TermSignal::SIGUSR1));
 }
 

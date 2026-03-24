@@ -10,8 +10,5 @@ pub enum TermSignal {
 }
 
 /// A collection of signals that are commonly used to terminate a process.
-pub const TERM_SIGNALS: &[TermSignal] = &[
-    TermSignal::SIGINT,
-    TermSignal::SIGTERM,
-    TermSignal::SIGQUIT,
-];
+pub const TERM_SIGNALS: &[TermSignal] =
+    &[TermSignal::SIGINT, TermSignal::SIGTERM, TermSignal::SIGQUIT];
